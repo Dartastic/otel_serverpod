@@ -1,0 +1,7 @@
+# Excluded from the pub.dev archive. Consumers don't need our
+# internal tooling or integration tests.
+.github/
+.idea/
+example_app/
+test/integration/
+tool/

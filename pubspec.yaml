@@ -1,0 +1,28 @@
+name: otel_serverpod
+description: OpenTelemetry instrumentation for Serverpod. One call opens
+  http.server semconv spans per endpoint method call (route = endpoint.method),
+  db.* client spans for the database layer, and the standard
+  http.server.request.duration metrics. Works with any OTLP backend.
+version: 0.1.0-beta.1-wip
+repository: https://github.com/dartastic/otel_serverpod
+homepage: https://dartastic.io
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  dartastic_opentelemetry: ^1.1.0-beta.12
+  dartastic_opentelemetry_api: ^1.0.0-rc.1
+  serverpod: ">=4.0.0-beta.1 <4.1.0"
+
+dev_dependencies:
+  dart_flutter_team_lints: ^3.5.2
+  pub_semver: ^2.0.0
+  pubspec_parse: ^1.5.0
+  test: ^1.26.3
+
+# Serverpod servers run on desktop/server platforms only.
+platforms:
+  linux:
+  macos:
+  windows:
