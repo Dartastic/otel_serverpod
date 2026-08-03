@@ -77,7 +77,7 @@ become children of the transaction span automatically.
 `db.query.text` is stamped ONLY on the `unsafe*` raw-SQL
 operations and ONLY when you opt in with
 `OtelServerpod.install(pod, captureDbStatements: true)` — raw SQL
-can carry PII literals, so the default is OFF. The typed CRUD
+can carry sensitive literals, so the default is OFF. The typed CRUD
 operations never carry query text.
 
 ## Future calls

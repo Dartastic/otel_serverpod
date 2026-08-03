@@ -34,7 +34,7 @@ abstract final class OtelServerpod {
   /// on the global providers.
   ///
   /// [captureDbStatements] stamps `db.query.text` on `unsafe*` raw-SQL
-  /// database operations. Privacy default OFF — raw SQL can carry PII
+  /// database operations. Privacy default OFF — raw SQL can carry sensitive
   /// literals.
   ///
   /// Throws [StateError] when the OTel SDK is not initialized. No fallback

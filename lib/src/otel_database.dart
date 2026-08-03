@@ -21,7 +21,7 @@ import 'otel_serverpod_semantics.dart';
 /// children automatically.
 ///
 /// `db.query.text` is stamped ONLY on the `unsafe*` raw-SQL operations and
-/// ONLY when [captureDbStatements] is true — raw SQL can carry PII
+/// ONLY when [captureDbStatements] is true — raw SQL can carry sensitive
 /// literals, so the privacy default is OFF. The typed CRUD operations
 /// never carry query text.
 class OtelDatabase implements Database {
