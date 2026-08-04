@@ -96,14 +96,14 @@ class BirthdayReminder extends OtelFutureCall<Birthday> {
 
 ## What is instrumented, exactly
 
-| Signal | Name | Notes |
-| --- | --- | --- |
-| Span | `POST {endpoint}.{method}` | kind `server`, `http.request.method`, `http.route`, `url.path`, `url.scheme`, `network.protocol.version`, `http.response.status_code`, `rpc.system.name = serverpod`, `rpc.method`, `error.type` on failure |
-| Span | `{operation} {table}` (e.g. `find person`) | kind `client`, `db.system.name`, `db.operation.name`, `db.collection.name`, `server.address`, `server.port`; `db.query.text` only on `unsafe*` ops and only with `captureDbStatements: true` (default off) |
-| Span | future-call name | kind `internal`, `code.function.name`, via `OtelFutureCall` |
-| Metric | `http.server.request.duration` | histogram, seconds, registry bucket advice |
-| Metric | `http.server.active_requests` | up-down counter |
-| Metric | `db.client.operation.duration` | histogram, seconds |
+| Signal | Name                                       | Notes                                                                                                                                                                                                       |
+|--------|--------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Span   | `POST {endpoint}.{method}`                 | kind `server`, `http.request.method`, `http.route`, `url.path`, `url.scheme`, `network.protocol.version`, `http.response.status_code`, `rpc.system.name = serverpod`, `rpc.method`, `error.type` on failure |
+| Span   | `{operation} {table}` (e.g. `find person`) | kind `client`, `db.system.name`, `db.operation.name`, `db.collection.name`, `server.address`, `server.port`; `db.query.text` only on `unsafe*` ops and only with `captureDbStatements: true` (default off)  |
+| Span   | future-call name                           | kind `internal`, `code.function.name`, via `OtelFutureCall`                                                                                                                                                 |
+| Metric | `http.server.request.duration`             | histogram, seconds, registry bucket advice                                                                                                                                                                  |
+| Metric | `http.server.active_requests`              | up-down counter                                                                                                                                                                                             |
+| Metric | `db.client.operation.duration`             | histogram, seconds                                                                                                                                                                                          |
 
 Names not covered by the semconv registry enums are exported as
 consts on `OtelServerpodSemantics`.
