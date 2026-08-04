@@ -3,7 +3,7 @@ description: OpenTelemetry instrumentation for Serverpod. One call opens
   http.server semconv spans per endpoint method call (route = endpoint.method),
   db.* client spans for the database layer, and the standard
   http.server.request.duration metrics. Works with any OTLP backend.
-version: 0.1.0-beta.1-wip
+version: 0.1.0-beta.1
 repository: https://github.com/dartastic/otel_serverpod
 homepage: https://dartastic.io
 
