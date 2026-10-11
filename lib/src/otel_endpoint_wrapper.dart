@@ -1,7 +1,8 @@
 // Licensed under the Apache License, Version 2.0
 // Copyright 2026, Michael Bushe, All rights reserved.
 
-import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart' as otel;
+import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart'
+    as otel;
 import 'package:serverpod/serverpod.dart';
 
 import 'otel_serverpod_semantics.dart';

@@ -226,4 +226,23 @@ void main() {
 
     expect(spanNamed('quiet').status, otel.SpanStatusCode.Unset);
   });
+
+  test('without install the session database is left unwrapped, no throw',
+      () async {
+    await OtelServerpod.uninstall();
+    final reported = <Object>[];
+    otel.OTelAPI.setErrorHandler((error, [stackTrace]) => reported.add(error));
+    addTearDown(() => otel.OTelAPI.setErrorHandler(null));
+
+    final session = FutureCallSession(
+      server: _FakeServer(),
+      futureCallName: 'birthdayReminder',
+      enableLogging: false,
+    );
+    expect(session.db, isA<_FakeDatabase>());
+    await session.close();
+
+    expect(reported, [isA<StateError>()]);
+    expect(exporter.spans, isEmpty);
+  });
 }

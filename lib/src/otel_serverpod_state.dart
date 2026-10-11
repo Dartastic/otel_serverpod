@@ -1,7 +1,8 @@
 // Licensed under the Apache License, Version 2.0
 // Copyright 2026, Michael Bushe, All rights reserved.
 
-import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart' as otel;
+import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart'
+    as otel;
 
 /// Package-internal install-time wiring shared by `OtelServerpod`,
 /// `OtelServerpod.databaseInterceptor` and the future-call spans. Not exported by
@@ -15,7 +16,7 @@ class OtelServerpodInstallation {
   });
 
   /// Tracer for the `otel_serverpod` instrumentation scope.
-  final otel.Tracer tracer;
+  final otel.APITracer tracer;
 
   /// `db.client.operation.duration` histogram for `OtelDatabase`.
   final otel.APIHistogram<double> dbOperationDuration;
@@ -27,13 +28,16 @@ class OtelServerpodInstallation {
   /// `OtelServerpod.uninstall`.
   static OtelServerpodInstallation? current;
 
-  /// The active installation, or a StateError naming the fix. Fail fast, no
-  /// fallback: telemetry silently not appearing is the worst failure mode.
-  static OtelServerpodInstallation require() {
+  /// The active installation, or null after reporting the missing
+  /// `OtelServerpod.install` through the OpenTelemetry error handler.
+  /// Telemetry never throws into the app: callers skip instrumentation
+  /// and let the operation run untraced.
+  static OtelServerpodInstallation? resolve() {
     final installation = current;
     if (installation == null) {
-      throw StateError('Call OtelServerpod.install(pod) before pod.start() — '
-          'OtelServerpod is not installed.');
+      otel.OTelErrorHandling.report(StateError(
+          'OtelServerpod is not installed: call OtelServerpod.install(pod) '
+          'before pod.start(). Database and future-call spans are skipped.'));
     }
     return installation;
   }

@@ -1,7 +1,8 @@
 // Licensed under the Apache License, Version 2.0
 // Copyright 2026, Michael Bushe, All rights reserved.
 
-import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart' as otel;
+import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart'
+    as otel;
 import 'package:serverpod/serverpod.dart';
 
 import 'otel_database.dart';
@@ -38,26 +39,23 @@ abstract final class OtelServerpod {
   /// database operations. Privacy default OFF — raw SQL can carry sensitive
   /// literals.
   ///
-  /// Throws [StateError] when the OTel SDK is not initialized. No fallback
-  /// auto-init: the endpoint/auth wiring belongs to your initialize call.
+  /// This package depends on the OpenTelemetry API only; initializing an
+  /// SDK is the application's job. Initialize it before calling [install]:
+  /// the tracer and meter are resolved here, and without an SDK the API
+  /// hands out no-op instances, so nothing is recorded.
   static void install(
     Serverpod pod, {
-    otel.Tracer? tracer,
+    otel.APITracer? tracer,
     otel.APIMeter? meter,
     bool captureDbStatements = false,
   }) {
-    final factory = otel.OTelFactory.otelFactory;
-    if (factory == null || factory is! otel.OTelSDKFactory) {
-      throw StateError(
-          'Initialize OTel (OTel.initialize) before OtelServerpod.install');
-    }
     if (OtelServerpodInstallation.current != null) return;
 
-    tracer ??= otel.OTel.tracerProvider().getTracer(
+    tracer ??= otel.OTelAPI.tracerProvider().getTracer(
       OtelServerpodSemantics.instrumentationScopeName,
       version: OtelServerpodSemantics.instrumentationScopeVersion,
     );
-    meter ??= otel.OTel.meterProvider().getMeter(
+    meter ??= otel.OTelAPI.meterProvider().getMeter(
       name: OtelServerpodSemantics.instrumentationScopeName,
       version: OtelServerpodSemantics.instrumentationScopeVersion,
     );
@@ -103,8 +101,9 @@ abstract final class OtelServerpod {
   /// ```
   ///
   /// Sessions only reach the database after `pod.start()`, which the wiring
-  /// order puts after [install]; a session created without [install] having
-  /// run fails fast with [StateError] on its first database operation.
+  /// order puts after [install]. If [install] has not run, the session gets
+  /// its database unwrapped and the mistake is reported through the
+  /// OpenTelemetry error handler; telemetry never throws into the app.
   ///
   /// For a [FutureCallSession] it also opens the future call's INTERNAL
   /// span (Serverpod builds the session, and so calls this, right before
@@ -113,9 +112,11 @@ abstract final class OtelServerpod {
   /// [diagnosticEventHandler] too, so a future call that throws gets an
   /// Error status and its exception recorded.
   static Database databaseInterceptor(Session session, Database inner) {
-    final installation = OtelServerpodInstallation.require();
-    final futureCallSpan =
-        session is FutureCallSession ? startFutureCallSpan(session) : null;
+    final installation = OtelServerpodInstallation.resolve();
+    if (installation == null) return inner;
+    final futureCallSpan = session is FutureCallSession
+        ? startFutureCallSpan(session, installation.tracer)
+        : null;
     final databaseConfig = session.serverpod.config.database;
     return OtelDatabase(
       inner: inner,

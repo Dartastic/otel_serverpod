@@ -1,7 +1,8 @@
 // Licensed under the Apache License, Version 2.0
 // Copyright 2026, Michael Bushe, All rights reserved.
 
-import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart' as otel;
+import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart'
+    as otel;
 
 import 'otel_serverpod_semantics.dart';
 
@@ -29,10 +30,9 @@ class RequestTelemetry {
     return OtelServerpodSemantics.httpRoute(endpointPath, method);
   }
 
-  /// The one [otel.ContextKey] both layers use. Lazily created on first use
-  /// so it is only minted after `OTel.initialize` (creating it earlier throws
-  /// the SDK's own initialize-first StateError — fail fast, no fallback).
+  /// The one [otel.ContextKey] both layers use. Lazily created on first use,
+  /// after the application has initialized its SDK.
   static final otel.ContextKey<RequestTelemetry> contextKey =
-      otel.OTel.contextKey<RequestTelemetry>(
+      otel.OTelAPI.contextKey<RequestTelemetry>(
           OtelServerpodSemantics.requestTelemetryContextKeyName);
 }

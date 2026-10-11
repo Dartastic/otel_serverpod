@@ -35,8 +35,10 @@ Future<void> run(List<String> args) async {
 }
 ```
 
-Initialize OTel *before* `OtelServerpod.install(pod)` — install
-fails fast with a `StateError` if the SDK is not initialized.
+This package depends on the OpenTelemetry API only; your app chooses
+and initializes the SDK (above, `dartastic_opentelemetry`). Initialize
+it *before* `OtelServerpod.install(pod)`: without an SDK the API hands
+out no-op tracers and meters, so nothing is recorded.
 
 ## What one call gives you, zero config
 

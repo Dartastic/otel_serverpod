@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.0-wip]
+## [0.3.0-wip]
 
 ### Added
 
@@ -21,12 +21,22 @@
 
 ### Changed
 
+- **Breaking:** `OtelServerpod.install` no longer throws when no SDK is
+  initialized; this package depends on the API only and the app
+  initializes the SDK. Without `install`, `databaseInterceptor` leaves
+  the database unwrapped and reports the mistake through the
+  OpenTelemetry error handler instead of throwing `StateError`.
+- Inbound context is extracted with the app's configured propagators
+  (`OTelAPI.textMapPropagator`: W3C trace context and baggage by
+  default, `OTEL_PROPAGATORS` to change them).
 - `http.server.request.duration` passes its bucket boundaries as
   `InstrumentAdvisory(explicitBucketBoundaries: ...)`.
-- Requires `dartastic_opentelemetry ^1.1.0-beta.17` and
-  `dartastic_opentelemetry_api >=1.0.0-rc.4 <1.0.0-rc.5`.
-- First 1.0 release: the public API of this package is stable and
-  follows semantic versioning from here on.
+- Requires `dartastic_opentelemetry_api >=1.0.0-rc.4 <1.0.0-rc.5`.
+- **Breaking:** depends on `dartastic_opentelemetry_api` only, no
+  longer on the SDK. The application chooses and initializes the
+  OpenTelemetry SDK. Parameters and fields typed with SDK classes
+  now use the API types (`APITracer`, `APISpan`, `APILogger`, ...);
+  SDK instances are still accepted wherever an API type is expected.
 
 ## [0.2.0] - 2026-08-10
 

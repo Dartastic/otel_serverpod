@@ -1,7 +1,8 @@
 // Licensed under the Apache License, Version 2.0
 // Copyright 2026, Michael Bushe, All rights reserved.
 
-import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart' as otel;
+import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart'
+    as otel;
 import 'package:serverpod/serverpod.dart';
 
 import 'otel_serverpod_semantics.dart';
@@ -33,7 +34,7 @@ class OtelDatabase implements Database {
   /// [parentSpan] parents operations that run with no current span.
   OtelDatabase({
     required Database inner,
-    required otel.Tracer tracer,
+    required otel.APITracer tracer,
     otel.APIHistogram<double>? operationDuration,
     this.captureDbStatements = false,
     this.serverAddress,
@@ -45,7 +46,7 @@ class OtelDatabase implements Database {
         _operationDuration = operationDuration;
 
   final Database _inner;
-  final otel.Tracer _tracer;
+  final otel.APITracer _tracer;
   final otel.APIHistogram<double>? _operationDuration;
 
   /// Parent for spans started where no span is current: the future-call
@@ -97,7 +98,7 @@ class OtelDatabase implements Database {
               ? current.withSpan(parent)
               : current,
       kind: otel.SpanKind.client,
-      attributes: otel.OTel.attributesFromSemanticMap({
+      attributes: otel.OTelAPI.attributesFromSemanticMap({
         otel.Db.dbSystemName: _dbSystemName,
         otel.Db.dbOperationName: operationName,
         if (collectionName != null) otel.Db.dbCollectionName: collectionName,
@@ -124,7 +125,7 @@ class OtelDatabase implements Database {
       span.end();
       _operationDuration?.record(
         stopwatch.elapsedMicroseconds / Duration.microsecondsPerSecond,
-        otel.OTel.attributesFromSemanticMap({
+        otel.OTelAPI.attributesFromSemanticMap({
           otel.Db.dbSystemName: _dbSystemName,
           otel.Db.dbOperationName: operationName,
           if (collectionName != null) otel.Db.dbCollectionName: collectionName,

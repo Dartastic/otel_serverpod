@@ -3,7 +3,8 @@
 
 import 'dart:io' show HttpStatus;
 
-import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart' as otel;
+import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart'
+    as otel;
 import 'package:serverpod/serverpod.dart';
 
 import 'request_telemetry.dart';
@@ -29,13 +30,10 @@ import 'request_telemetry.dart';
 /// responses; [_statusCodeForException] mirrors Serverpod's documented
 /// mapping so the span/metric carry the status code the client receives.
 Middleware otelServerpodMiddleware({
-  required otel.Tracer tracer,
+  required otel.APITracer tracer,
   required otel.APIHistogram<double> requestDuration,
   required otel.APIUpDownCounter<int> activeRequests,
 }) {
-  final traceContext = otel.W3CTraceContextPropagator();
-  final baggage = otel.W3CBaggagePropagator();
-
   return (Handler next) {
     return (Request req) async {
       final carrier = <String, String>{
@@ -43,16 +41,18 @@ Middleware otelServerpodMiddleware({
           entry.key.toLowerCase(): entry.value.join(','),
       };
       final getter = _MapGetter(carrier);
-      var extracted =
-          traceContext.extract(otel.Context.current, carrier, getter);
-      extracted = baggage.extract(extracted, carrier, getter);
+      // The app's configured propagators (W3C trace context + baggage by
+      // default; OTEL_PROPAGATORS overrides), read per request so an SDK
+      // initialized after install still applies.
+      final extracted = otel.OTelAPI.textMapPropagator
+          .extract(otel.Context.current, carrier, getter);
 
       final httpRequestMethod = req.method.value;
       final span = tracer.startSpan(
         httpRequestMethod,
         context: extracted,
         kind: otel.SpanKind.server,
-        attributes: otel.OTel.attributesFromSemanticMap({
+        attributes: otel.OTelAPI.attributesFromSemanticMap({
           otel.Http.httpRequestMethod: httpRequestMethod,
           otel.Url.urlPath: req.url.path,
           otel.Url.urlScheme: req.url.scheme,
@@ -60,7 +60,7 @@ Middleware otelServerpodMiddleware({
         }),
       );
 
-      final activeRequestAttributes = otel.OTel.attributesFromSemanticMap({
+      final activeRequestAttributes = otel.OTelAPI.attributesFromSemanticMap({
         otel.Http.httpRequestMethod: httpRequestMethod,
         otel.Url.urlScheme: req.url.scheme,
       });
@@ -107,7 +107,7 @@ Middleware otelServerpodMiddleware({
 
         requestDuration.record(
           stopwatch.elapsedMicroseconds / Duration.microsecondsPerSecond,
-          otel.OTel.attributesFromSemanticMap({
+          otel.OTelAPI.attributesFromSemanticMap({
             otel.Http.httpRequestMethod: httpRequestMethod,
             if (route != null) otel.Http.httpRoute: route,
             if (status != null) otel.Http.httpResponseStatusCode: status,

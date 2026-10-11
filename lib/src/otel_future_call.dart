@@ -1,10 +1,9 @@
 // Licensed under the Apache License, Version 2.0
 // Copyright 2026, Michael Bushe, All rights reserved.
 
-import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart' as otel;
+import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart'
+    as otel;
 import 'package:serverpod/serverpod.dart';
-
-import 'otel_serverpod_state.dart';
 
 /// Future-call spans for Serverpod 4.0.
 ///
@@ -36,13 +35,15 @@ final _openSpans = <UuidValue, otel.APISpan>{};
 /// Opens the INTERNAL span for [session]'s future call and arranges for it
 /// to end when Serverpod closes the session. Returns the span so the
 /// session's database operations can parent to it.
-otel.APISpan startFutureCallSpan(FutureCallSession session) {
-  final tracer = OtelServerpodInstallation.require().tracer;
+otel.APISpan startFutureCallSpan(
+  FutureCallSession session,
+  otel.APITracer tracer,
+) {
   final name = session.futureCallName;
   final span = tracer.startSpan(
     name,
     kind: otel.SpanKind.internal,
-    attributes: otel.OTel.attributesFromSemanticMap({
+    attributes: otel.OTelAPI.attributesFromSemanticMap({
       otel.Code.codeFunctionName: name,
     }),
   );
@@ -88,7 +89,7 @@ final class OtelFutureCallExceptionHandler
     // Spec order: recordException first, THEN setStatus.
     span.recordException(event.exception,
         stackTrace: event.stackTrace, escaped: true);
-    span.addAttributes(otel.OTel.attributesFromSemanticMap({
+    span.addAttributes(otel.OTelAPI.attributesFromSemanticMap({
       otel.ErrorAttributes.errorType: event.exception.runtimeType.toString(),
     }));
     span.setStatus(otel.SpanStatusCode.Error);
