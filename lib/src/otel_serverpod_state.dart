@@ -4,7 +4,7 @@
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart' as otel;
 
 /// Package-internal install-time wiring shared by `OtelServerpod`,
-/// `OtelServerpod.databaseInterceptor` and `OtelFutureCall`. Not exported by
+/// `OtelServerpod.databaseInterceptor` and the future-call spans. Not exported by
 /// the package barrel — this is plumbing, not API.
 class OtelServerpodInstallation {
   /// Captures the wiring `OtelServerpod.install` resolved.

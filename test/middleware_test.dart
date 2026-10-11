@@ -70,10 +70,10 @@ void main() {
     test(
         'extracts W3C context, opens a server span and records the duration '
         'metric with the status code', () async {
-      otel.APISpan? seenSpan;
+      otel.Span? seenSpan;
       RequestTelemetry? seenTelemetry;
       final handler = middleware((req) async {
-        seenSpan = otel.Context.current.span;
+        seenSpan = otel.Context.current.span as otel.Span?;
         seenTelemetry = otel.Context.current.get(RequestTelemetry.contextKey);
         return Response.ok();
       });
@@ -92,8 +92,9 @@ void main() {
           span.attributes.getString(otel.Http.httpRequestMethod.key), 'POST');
       expect(span.attributes.getInt(otel.Http.httpResponseStatusCode.key),
           HttpStatus.ok);
-      // Not Error — the SDK's end() upgrades a still-Unset status to Ok.
-      expect(span.status, otel.SpanStatusCode.Ok);
+      // Not Error. Instrumentation leaves a successful span Unset, and the
+      // SDK no longer upgrades Unset to Ok on end().
+      expect(span.status, otel.SpanStatusCode.Unset);
 
       expect(requestDuration.records, hasLength(1));
       final (value, attributes) = requestDuration.records.single;
@@ -130,9 +131,9 @@ void main() {
     test(
         'unexpected exception: 500 on the metric, Error status + error.type '
         'on the span, rethrown', () async {
-      otel.APISpan? seenSpan;
+      otel.Span? seenSpan;
       final handler = middleware((req) async {
-        seenSpan = otel.Context.current.span;
+        seenSpan = otel.Context.current.span as otel.Span?;
         throw _Boom();
       });
 
@@ -154,9 +155,9 @@ void main() {
     test(
         'dispatch exceptions map to their wire status codes and 4xx does not '
         'mark the server span as error', () async {
-      otel.APISpan? seenSpan;
+      otel.Span? seenSpan;
       final handler = middleware((req) async {
-        seenSpan = otel.Context.current.span;
+        seenSpan = otel.Context.current.span as otel.Span?;
         throw EndpointNotFoundException('Endpoint not found');
       });
 
@@ -164,8 +165,9 @@ void main() {
           handler(_postRequest()), throwsA(isA<EndpointNotFoundException>()));
 
       final span = seenSpan!;
-      // Not Error — the SDK's end() upgrades a still-Unset status to Ok.
-      expect(span.status, otel.SpanStatusCode.Ok);
+      // Not Error. Instrumentation leaves a successful span Unset, and the
+      // SDK no longer upgrades Unset to Ok on end().
+      expect(span.status, otel.SpanStatusCode.Unset);
       expect(span.attributes.getInt(otel.Http.httpResponseStatusCode.key),
           HttpStatus.notFound);
       expect(span.attributes.getString(otel.ErrorAttributes.errorType.key),

@@ -6,6 +6,7 @@ import 'package:serverpod/serverpod.dart';
 
 import 'otel_database.dart';
 import 'otel_endpoint_wrapper.dart';
+import 'otel_future_call.dart';
 import 'otel_middleware.dart';
 import 'otel_serverpod_semantics.dart';
 import 'otel_serverpod_state.dart';
@@ -64,7 +65,10 @@ abstract final class OtelServerpod {
     final requestDuration = meter.createHistogram<double>(
       name: otel.HttpMetric.httpServerRequestDuration.name,
       unit: otel.HttpMetric.httpServerRequestDuration.unit,
-      boundaries: OtelServerpodSemantics.httpServerRequestDurationBoundaries,
+      advisory: const otel.InstrumentAdvisory(
+        explicitBucketBoundaries:
+            OtelServerpodSemantics.httpServerRequestDurationBoundaries,
+      ),
     );
     final activeRequests = meter.createUpDownCounter<int>(
       name: otel.HttpMetric.httpServerActiveRequests.name,
@@ -101,8 +105,17 @@ abstract final class OtelServerpod {
   /// Sessions only reach the database after `pod.start()`, which the wiring
   /// order puts after [install]; a session created without [install] having
   /// run fails fast with [StateError] on its first database operation.
+  ///
+  /// For a [FutureCallSession] it also opens the future call's INTERNAL
+  /// span (Serverpod builds the session, and so calls this, right before
+  /// the call body runs) and ends it when Serverpod closes the session; the
+  /// session's database operations become its children. Register
+  /// [diagnosticEventHandler] too, so a future call that throws gets an
+  /// Error status and its exception recorded.
   static Database databaseInterceptor(Session session, Database inner) {
     final installation = OtelServerpodInstallation.require();
+    final futureCallSpan =
+        session is FutureCallSession ? startFutureCallSpan(session) : null;
     final databaseConfig = session.serverpod.config.database;
     return OtelDatabase(
       inner: inner,
@@ -111,8 +124,24 @@ abstract final class OtelServerpod {
       captureDbStatements: installation.captureDbStatements,
       serverAddress: databaseConfig?.host,
       serverPort: databaseConfig?.port,
+      parentSpan: futureCallSpan,
     );
   }
+
+  /// Records the exception of a future call that throws on its span and
+  /// marks it Error. Serverpod reports those exceptions only as diagnostic
+  /// events, so pass this handler to the pod alongside
+  /// [databaseInterceptor]:
+  ///
+  /// ```dart
+  /// Serverpod(args, Protocol(), Endpoints(),
+  ///     databaseInterceptor: OtelServerpod.databaseInterceptor,
+  ///     experimentalFeatures: ExperimentalFeatures(
+  ///       diagnosticEventHandlers: [OtelServerpod.diagnosticEventHandler],
+  ///     ));
+  /// ```
+  static const DiagnosticEventHandler diagnosticEventHandler =
+      OtelFutureCallExceptionHandler();
 
   /// Test teardown: clear the installation.
   ///

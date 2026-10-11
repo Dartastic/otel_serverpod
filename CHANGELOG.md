@@ -1,6 +1,32 @@
 # Changelog
 
-## [0.3.0-wip]
+## [1.0.0-wip]
+
+### Added
+
+- Future-call spans for Serverpod 4.0. Each run is an INTERNAL span
+  named after the future call, opened by
+  `OtelServerpod.databaseInterceptor` when Serverpod builds the call's
+  session and ended when the session closes. The call's database
+  operations are its children.
+- `OtelServerpod.diagnosticEventHandler`: pass it in
+  `ExperimentalFeatures(diagnosticEventHandlers: ...)` so a future call
+  that throws records the exception and ends with Error status.
+
+### Removed
+
+- `OtelFutureCall`. Serverpod 4.0 no longer calls `FutureCall.invoke`,
+  so its spans never fired on 4.0 releases. Extend `FutureCall` again;
+  the spans now come from the database interceptor.
+
+### Changed
+
+- `http.server.request.duration` passes its bucket boundaries as
+  `InstrumentAdvisory(explicitBucketBoundaries: ...)`.
+- Requires `dartastic_opentelemetry ^1.1.0-beta.17` and
+  `dartastic_opentelemetry_api >=1.0.0-rc.4 <1.0.0-rc.5`.
+- First 1.0 release: the public API of this package is stable and
+  follows semantic versioning from here on.
 
 ## [0.2.0] - 2026-08-10
 

@@ -82,17 +82,35 @@ operations never carry query text.
 
 ## Future calls
 
-Change `extends FutureCall` to `extends OtelFutureCall` and rename
-your `invoke` override to `run`. Each invocation becomes an
-INTERNAL span named after the registered future-call name; its
-database operations become child spans.
+Each future-call run becomes an INTERNAL span named after the
+registered future call, with `code.function.name`. Its database
+operations are child spans. Nothing changes in your `FutureCall`
+classes; the spans come from the same `databaseInterceptor` line,
+plus one diagnostic handler so a call that throws is recorded:
 
 ```dart
-class BirthdayReminder extends OtelFutureCall<Birthday> {
-  @override
-  Future<void> run(Session session, Birthday? object) async { ... }
-}
+final pod = Serverpod(
+  args,
+  Protocol(),
+  Endpoints(),
+  databaseInterceptor: OtelServerpod.databaseInterceptor,
+  experimentalFeatures: ExperimentalFeatures(
+    diagnosticEventHandlers: [OtelServerpod.diagnosticEventHandler],
+  ),
+);
 ```
+
+Serverpod 4.0 runs future calls through generated wrappers and has
+no invoke hook. Each run gets a fresh `FutureCallSession`, though,
+and the span follows that session: it opens when Serverpod builds
+the session's database, right before the call body, and ends when
+Serverpod closes the session. A call that throws is reported by
+Serverpod as a diagnostic event, which the handler records on the
+span (exception event, `error.type`, Error status).
+
+The call body does not run inside the span's zone, so other client
+spans it starts (an HTTP call, say) are not children of it. Database
+operations are, because they go through the session.
 
 ## What is instrumented, exactly
 
@@ -100,7 +118,7 @@ class BirthdayReminder extends OtelFutureCall<Birthday> {
 |--------|--------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Span   | `POST {endpoint}.{method}`                 | kind `server`, `http.request.method`, `http.route`, `url.path`, `url.scheme`, `network.protocol.version`, `http.response.status_code`, `rpc.system.name = serverpod`, `rpc.method`, `error.type` on failure |
 | Span   | `{operation} {table}` (e.g. `find person`) | kind `client`, `db.system.name`, `db.operation.name`, `db.collection.name`, `server.address`, `server.port`; `db.query.text` only on `unsafe*` ops and only with `captureDbStatements: true` (default off)  |
-| Span   | future-call name                           | kind `internal`, `code.function.name`, via `OtelFutureCall`                                                                                                                                                 |
+| Span   | future-call name                           | kind `internal`, `code.function.name`, via `databaseInterceptor` + `diagnosticEventHandler`                                                                                                                 |
 | Metric | `http.server.request.duration`             | histogram, seconds, registry bucket advice                                                                                                                                                                  |
 | Metric | `http.server.active_requests`              | up-down counter                                                                                                                                                                                             |
 | Metric | `db.client.operation.duration`             | histogram, seconds                                                                                                                                                                                          |

@@ -16,7 +16,9 @@ import 'otel_serverpod_semantics.dart';
 ///
 /// Spans parent to whatever span is active in the zone [otel.Context] when
 /// the operation runs — the endpoint span for session ops inside an endpoint
-/// call, the future-call span under `OtelFutureCall`. [transaction] wraps
+/// call. Where no span is current, they parent to [parentSpan] when given:
+/// the future-call span, since Serverpod does not run a future call's body
+/// in that span's zone. [transaction] wraps
 /// its callback in the transaction span's context so inner operations become
 /// children automatically.
 ///
@@ -28,6 +30,7 @@ class OtelDatabase implements Database {
   /// Wraps [inner], emitting spans from [tracer] and (optionally) duration
   /// measurements to [operationDuration]. [serverAddress]/[serverPort] stamp
   /// `server.address`/`server.port` from the pod's database config.
+  /// [parentSpan] parents operations that run with no current span.
   OtelDatabase({
     required Database inner,
     required otel.Tracer tracer,
@@ -35,13 +38,19 @@ class OtelDatabase implements Database {
     this.captureDbStatements = false,
     this.serverAddress,
     this.serverPort,
+    otel.APISpan? parentSpan,
   })  : _inner = inner,
+        _parentSpan = parentSpan,
         _tracer = tracer,
         _operationDuration = operationDuration;
 
   final Database _inner;
   final otel.Tracer _tracer;
   final otel.APIHistogram<double>? _operationDuration;
+
+  /// Parent for spans started where no span is current: the future-call
+  /// span, whose body Serverpod does not run in the span's zone.
+  final otel.APISpan? _parentSpan;
 
   /// Stamp `db.query.text` on `unsafe*` operations. Privacy default OFF.
   final bool captureDbStatements;
@@ -79,8 +88,14 @@ class OtelDatabase implements Database {
     String? queryText,
     bool activateSpan = false,
   }) async {
+    final current = otel.Context.current;
+    final parent = _parentSpan;
     final span = _tracer.startSpan(
       OtelServerpodSemantics.dbSpanName(operationName, collectionName),
+      context:
+          parent != null && current.span == null && current.spanContext == null
+              ? current.withSpan(parent)
+              : current,
       kind: otel.SpanKind.client,
       attributes: otel.OTel.attributesFromSemanticMap({
         otel.Db.dbSystemName: _dbSystemName,
