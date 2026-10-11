@@ -46,17 +46,13 @@ class _FakePod extends Fake implements Serverpod {
 
 void main() {
   group('OtelServerpod.install', () {
-    // NOTE: test order matters — the fail-fast test must run before any
+    // NOTE: test order matters — the no-SDK test must run before any
     // OTel.initialize in this file (global, single-shot, per-isolate state).
-    test('fails fast with StateError when OTel is not initialized', () {
-      expect(
-        () => OtelServerpod.install(_FakePod()),
-        throwsA(isA<StateError>().having(
-          (e) => e.message,
-          'message',
-          contains('Initialize OTel'),
-        )),
-      );
+    test('installs without an SDK and never throws', () {
+      // API-only: with no SDK the API hands out no-op instruments, and
+      // initializing an SDK is the application's job.
+      expect(() => OtelServerpod.install(_FakePod()), returnsNormally);
+      OtelServerpod.uninstall();
     });
 
     test('installs once — double-install is a no-op', () async {

@@ -10,6 +10,5 @@
 /// `db.*` client spans. Works with any OTLP backend.
 library;
 
-export 'src/otel_future_call.dart' show OtelFutureCall;
 export 'src/otel_serverpod.dart' show OtelServerpod;
 export 'src/otel_serverpod_semantics.dart' show OtelServerpodSemantics;

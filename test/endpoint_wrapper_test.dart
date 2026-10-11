@@ -195,8 +195,9 @@ void main() {
       );
       span.end();
 
-      // Not Error — the SDK's end() upgrades a still-Unset status to Ok.
-      expect(span.status, otel.SpanStatusCode.Ok);
+      // Not Error. Instrumentation leaves a successful span Unset, and the
+      // SDK no longer upgrades Unset to Ok on end().
+      expect(span.status, otel.SpanStatusCode.Unset);
       expect(span.spanEvents, isNotEmpty);
       expect(span.attributes.getString(otel.ErrorAttributes.errorType.key),
           '_DeclaredApiException');

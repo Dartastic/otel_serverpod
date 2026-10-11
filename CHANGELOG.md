@@ -2,6 +2,42 @@
 
 ## [0.3.0-wip]
 
+### Added
+
+- Future-call spans for Serverpod 4.0. Each run is an INTERNAL span
+  named after the future call, opened by
+  `OtelServerpod.databaseInterceptor` when Serverpod builds the call's
+  session and ended when the session closes. The call's database
+  operations are its children.
+- `OtelServerpod.diagnosticEventHandler`: pass it in
+  `ExperimentalFeatures(diagnosticEventHandlers: ...)` so a future call
+  that throws records the exception and ends with Error status.
+
+### Removed
+
+- `OtelFutureCall`. Serverpod 4.0 no longer calls `FutureCall.invoke`,
+  so its spans never fired on 4.0 releases. Extend `FutureCall` again;
+  the spans now come from the database interceptor.
+
+### Changed
+
+- **Breaking:** `OtelServerpod.install` no longer throws when no SDK is
+  initialized; this package depends on the API only and the app
+  initializes the SDK. Without `install`, `databaseInterceptor` leaves
+  the database unwrapped and reports the mistake through the
+  OpenTelemetry error handler instead of throwing `StateError`.
+- Inbound context is extracted with the app's configured propagators
+  (`OTelAPI.textMapPropagator`: W3C trace context and baggage by
+  default, `OTEL_PROPAGATORS` to change them).
+- `http.server.request.duration` passes its bucket boundaries as
+  `InstrumentAdvisory(explicitBucketBoundaries: ...)`.
+- Requires `dartastic_opentelemetry_api >=1.0.0-rc.4 <1.0.0-rc.5`.
+- **Breaking:** depends on `dartastic_opentelemetry_api` only, no
+  longer on the SDK. The application chooses and initializes the
+  OpenTelemetry SDK. Parameters and fields typed with SDK classes
+  now use the API types (`APITracer`, `APISpan`, `APILogger`, ...);
+  SDK instances are still accepted wherever an API type is expected.
+
 ## [0.2.0] - 2026-08-10
 
 ## [0.1.0-beta.1] - 2026-08-04
