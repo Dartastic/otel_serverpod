@@ -3,7 +3,7 @@ description: >-
   OpenTelemetry instrumentation for Serverpod. One call opens http.server
   spans per endpoint method, db.* client spans for the database layer, and
   request-duration metrics.
-version: 0.3.0
+version: 0.3.1-wip
 repository: https://github.com/dartastic/otel_serverpod
 homepage: https://dartastic.io
 
